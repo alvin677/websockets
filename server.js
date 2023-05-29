@@ -49,19 +49,19 @@ ws.on('message', function incoming(message) {
   });
 
   // Handle player disconnection
-  ws.on('close', function () {
+ws.on('close', function () {
     // Remove the player from the list
     const index = players.indexOf(player);
     if (index > -1) {
       players.splice(index, 1);
+  
+      // Broadcast the updated player list to all connected players
+      const playerLeft = {
+        type: "state",
+        players: players.map(({ id, x, y, color }) => ({ id, x, y, color })),
+      };
+      broadcast(JSON.stringify(playerLeft));
     }
-
-    // Broadcast the updated player list to all connected players
-    const playerLeft = {
-      type: "state",
-      players: [{ id: player.id }],
-    };
-    broadcast(JSON.stringify(playerLeft));
   });
 
   // Broadcast a message to all connected players
