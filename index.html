@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Multiplayer Game</title>
+  <style>
+    canvas {
+      border: 1px solid #000;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const context = canvas.getContext("2d");
+
+    // Establish a WebSocket connection
+    const socket = new WebSocket("ws://localhost:8080");
+
+    // Listen for messages from the server
+    socket.onmessage = function (event) {
+      const message = JSON.parse(event.data);
+      if (message.type === "state") {
+        // Clear canvas
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw other players' squares
+        message.players.forEach(function (player) {
+          drawSquare(player.x, player.y, player.color);
+        });
+      }
+    };
+
+    // Handle keyboard events for player movement
+    document.addEventListener("keydown", function (event) {
+      const speed = 5;
+      let dx = 0;
+      let dy = 0;
+
+      switch (event.keyCode) {
+        case 37: // Left arrow key
+          dx = -speed;
+          break;
+        case 38: // Up arrow key
+          dy = -speed;
+          break;
+        case 39: // Right arrow key
+          dx = speed;
+          break;
+        case 40: // Down arrow key
+          dy = speed;
+          break;
+      }
+
+      // Send player movement to the server
+      socket.send(JSON.stringify({ type: "move", dx, dy }));
+    });
+
+    // Draw a square at the specified position with the given color
+    function drawSquare(x, y, color) {
+      context.fillStyle = color;
+      context.fillRect(x, y, 20, 20);
+    }
+  </script>
+</body>
+</html>
