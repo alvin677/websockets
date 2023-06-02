@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>WebSocket Chat</title>
+    <script>
+      // Create a new WebSocket connection
+      const socket = new WebSocket('ws://localhost:8080');
+      let username = '';
+
+      // Handle incoming messages from the server
+      socket.onmessage = async (event) => {
+        const messageContainer = document.getElementById('message-container');
+        const newMessage = document.createElement('div');
+
+        // Convert the Blob object to text
+        const messageText = await event.data.text();
+        newMessage.textContent = messageText;
+
+        messageContainer.appendChild(newMessage);
+      };
+
+      // Send a message to the server when the form is submitted
+      function sendMessage() {
+        const messageInput = document.getElementById('message-input');
+        const message = messageInput.value;
+        const fullMessage = `[${username}]: ${message}`; // Add username to the message
+        socket.send(fullMessage);
+        messageInput.value = '';
+      }
+
+      // Prompt for username when the page loads
+      window.onload = () => {
+        username = prompt('Enter your username:');
+        if (!username || username.trim() === '') {
+          username = 'Guest';
+        }
+      };
+    </script>
+  </head>
+  <body>
+    <h1>WebSocket Chat</h1>
+    <div id="message-container"></div>
+    <form onsubmit="event.preventDefault(); sendMessage()">
+      <input id="message-input" type="text" placeholder="Type a message" autofocus>
+      <button type="submit">Send</button>
+    </form>
+  </body>
+</html>
