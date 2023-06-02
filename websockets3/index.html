@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chilltopia</title>
+  <style>
+    canvas {
+      border: 1px solid #000;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="400" height="400"></canvas>
+  <input id = "chatmessage" /><button onclick = "sendMessage(document.getElementById('chatmessage').value); document.getElementById('chatmessage').value = ''">send</button>
+  <textarea id = "logs"></textarea>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const context = canvas.getContext("2d");
+    const logs = document.getElementById("logs");
+
+    // Player X and Y
+    let x = Math.random() * 380; // Position X
+    let y = Math.random() * 380; // Position Y
+
+    function collides(rect1, rect2) {
+      if (
+    rect1[0] < rect2[0] + rect2[2] &&
+    rect1[0] + rect1[2] > rect2[0] &&
+    rect1[1] < rect2[1] + rect2[3] &&
+    rect1[3] + rect1[1] > rect2[1]
+      ){
+        x = previousX; y = previousY;
+      }else {previousX = x; previousY = y;}
+    }
+
+    // Establish a WebSocket connection
+    const socket = new WebSocket(`ws://${window.location.hostname}:8080`);
+
+    // Listen for messages from the server
+    socket.onmessage = function (event) {
+      const message = JSON.parse(event.data);
+      if (message.joined) {console.log("Player joined: "+message.joined)}
+      if (message.left) {console.log("Player left: "+message.left)}
+      if (message.message) {logs.innerHTML += `${message.user}: ${message.message}\n`;}
+      if (message.type === "state") {
+        // Clear canvas
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw other players' squares
+        message.players.forEach(function (player) {
+          drawSquare(player.x, player.y, player.color);
+          if ((x != player.x) && (y != player.y)) {collides([x, y, 20, 20], [player.x, player.y, 20, 20, player.id]);}
+        });
+      }
+    };
+
+    
+    const speed = 5;
+
+    // Detect key presses
+    let keysDown={}; // Array with pressed down keys
+    function keyDown(e){ keysDown[e.key]=true; } // Function to set key to true if it's held down
+    function keyUp(e){ delete keysDown[e.key]; } // Function to delete key from array if it's released
+    window.addEventListener( 'keydown', keyDown, false ); // Event listener to detect if a key is down
+    window.addEventListener( 'keyup', keyUp, false ); // Event listener to detect if a key is released
+
+    // Draw a square at the specified position with the given color
+    function drawSquare(x, y, color) {
+      context.fillStyle = color;
+      context.fillRect(x, y, 20, 20);
+    }
+
+    function sendMessage(msg) {
+      socket.send(JSON.stringify({ type: "chat", message : msg }));
+    }
+
+    async function update() { // "Main" loop
+      setInterval(function () {
+        if (keysDown['a']){x += -speed;}
+        if (keysDown['w']){y += -speed;}
+        if (keysDown['d']){x += speed;}
+        if (keysDown['s']){y += speed;}
+        //y += 1; // "gravity"
+        
+        socket.send(JSON.stringify({ type: "position", x, y }));
+      }, 20);
+    }
+    update();
+  </script>
+</body>
+</html>
